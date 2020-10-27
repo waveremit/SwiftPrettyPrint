@@ -5,7 +5,7 @@
 //  Created by Yusuke Hosonuma on 2020/02/26.
 //
 
-class MultilineFormatter: PrettyFormatter {
+class MultilineFormatter: PrettyFormatterProtocol {
     private let indentSize: Int
 
     public init(indentSize: Int) {

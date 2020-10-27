@@ -9,11 +9,11 @@
 import Foundation
 
 public struct PrettyDescriber {
-    public var formatter: PrettyFormatter
+    public var formatter: PrettyFormatterProtocol
     public var timeZone: TimeZone
 
     public init(formatter: PrettyFormatter, timeZone: TimeZone = .current) {
-        self.formatter = formatter
+        self.formatter = formatter.implementation
         self.timeZone = timeZone
     }
 
