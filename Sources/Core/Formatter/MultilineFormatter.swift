@@ -8,7 +8,7 @@
 class MultilineFormatter: PrettyFormatter {
     private let indentSize: Int
 
-    init(indentSize: Int) {
+    public init(indentSize: Int) {
         self.indentSize = indentSize
     }
 

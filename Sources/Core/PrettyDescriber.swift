@@ -8,11 +8,16 @@
 
 import Foundation
 
-struct PrettyDescriber {
-    var formatter: PrettyFormatter
-    var timeZone: TimeZone = .current
+public struct PrettyDescriber {
+    public var formatter: PrettyFormatter
+    public var timeZone: TimeZone
 
-    func string<T: Any>(_ target: T, debug: Bool) -> String {
+    public init(formatter: PrettyFormatter, timeZone: TimeZone = .current) {
+        self.formatter = formatter
+        self.timeZone = timeZone
+    }
+
+    public func string<T: Any>(_ target: T, debug: Bool) -> String {
         func _string(_ target: Any) -> String {
             string(target, debug: debug)
         }
@@ -112,7 +117,8 @@ struct PrettyDescriber {
 
             guard
                 let key = root.children.first?.value,
-                let value = root.children.dropFirst().first?.value else {
+                let value = root.children.dropFirst().first?.value
+            else {
                 throw PrettyDescriberError.failedExtractKeyValue(dictionary: dictionary)
             }
 
@@ -240,7 +246,7 @@ struct PrettyDescriber {
 
     private func dumpError(error: Error) {
         let message = """
-        
+
         ---------------------------------------------------------
         Fatal error in SwiftPrettyPrint.
         ---------------------------------------------------------
@@ -248,7 +254,7 @@ struct PrettyDescriber {
         Please report issue from below:
         https://github.com/YusukeHosonuma/SwiftPrettyPrint/issues
         ---------------------------------------------------------
-        
+
         """
         print(message)
     }
