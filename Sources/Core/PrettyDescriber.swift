@@ -17,7 +17,7 @@ public struct PrettyDescriber {
         self.timeZone = timeZone
     }
 
-    public func string<T: Any>(_ target: T, debug: Bool) -> String {
+    public func string<T: Any>(_ target: T, debug: Bool = false) -> String {
         func _string(_ target: Any) -> String {
             string(target, debug: debug)
         }
