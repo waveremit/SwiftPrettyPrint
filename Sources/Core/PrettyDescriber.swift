@@ -11,10 +11,22 @@ import Foundation
 public struct PrettyDescriber {
     public var formatter: PrettyFormatterProtocol
     public var timeZone: TimeZone
+    public var mirrorProvider: MirrorProvider
 
-    public init(formatter: PrettyFormatter, timeZone: TimeZone = .current) {
+    public struct RedactedValue {
+        fileprivate init() {}
+    }
+
+    public static let redactedValue: RedactedValue = .init()
+
+    public init(
+        formatter: PrettyFormatter,
+        timeZone: TimeZone = .current,
+        mirrorProvider: MirrorProvider = DefaultMirrorProvider.shared
+    ) {
         self.formatter = formatter.implementation
         self.timeZone = timeZone
+        self.mirrorProvider = mirrorProvider
     }
 
     public func string<T: Any>(_ target: T, debug: Bool = false) -> String {
@@ -22,7 +34,7 @@ public struct PrettyDescriber {
             string(target, debug: debug)
         }
 
-        let mirror = Mirror(reflecting: target)
+        let mirror = self.mirror(reflecting: target)
         let typeName = String(describing: mirror.subjectType)
 
         if let displayStyle = mirror.displayStyle {
@@ -84,6 +96,10 @@ public struct PrettyDescriber {
             }
         }
 
+        if target is RedactedValue {
+            return "[REDACTED]"
+        }
+
         // Premitive
         if let value = asPremitiveString(target, debug: debug) {
             return value
@@ -95,14 +111,14 @@ public struct PrettyDescriber {
         }
 
         // Object
-        let fields: [(String, String)] = mirror.children.map {
+        let fields: [(String, String)] = mirror.children.compactMap {
             ($0.label ?? "-", _string($0.value))
         }
         return formatter.objectString(typeName: typeName, fields: fields)
     }
 
     func extractKeyValues(from dictionary: Any) throws -> [(Any, Any)] {
-        try Mirror(reflecting: dictionary).children.map {
+        try mirror(reflecting: dictionary).children.map {
             // Note:
             // Each element $0 structure are like following:
             //
@@ -113,12 +129,11 @@ public struct PrettyDescriber {
             //   - value : 2      ->  `value`
             // ```
 
-            let root = Mirror(reflecting: $0.value)
+            let root = self.mirror(reflecting: $0.value)
 
             guard
                 let key = root.children.first?.value,
-                let value = root.children.dropFirst().first?.value
-            else {
+                let value = root.children.dropFirst().first?.value else {
                 throw PrettyDescriberError.failedExtractKeyValue(dictionary: dictionary)
             }
 
@@ -132,7 +147,7 @@ public struct PrettyDescriber {
         // - has only one field
         // - that field is `Premitive`
 
-        let mirror = Mirror(reflecting: target)
+        let mirror = self.mirror(reflecting: target)
 
         guard !debug, mirror.children.count == 1 else { return nil }
 
@@ -192,7 +207,7 @@ public struct PrettyDescriber {
     }
 
     private func enumString(_ target: Any, debug: Bool) throws -> String {
-        let mirror = Mirror(reflecting: target)
+        let mirror = self.mirror(reflecting: target)
         let typeName = String(describing: mirror.subjectType)
 
         if mirror.children.count == 0 {
@@ -233,6 +248,10 @@ public struct PrettyDescriber {
 
             return "\(prefix)(" + body.removeEnclosedParentheses() + ")"
         }
+    }
+
+    private func mirror<T: Any>(reflecting target: T) -> Mirror {
+        mirrorProvider.mirror(reflecting: target)
     }
 
     private func handleError(_ f: () throws -> String) -> String {
