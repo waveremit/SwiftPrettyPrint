@@ -4,14 +4,77 @@
 [![CocoaPods](https://img.shields.io/cocoapods/v/SwiftPrettyPrint.svg)](https://cocoapods.org/pods/SwiftPrettyPrint)
 [![Carthage Compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
 ![SPM Compatible](https://img.shields.io/badge/SPM-compatible-4BC51D.svg?style=flat)
-[![License](https://img.shields.io/github/license/YusukeHosonuma/SwiftPrettyPrint)](https://github.com/YusukeHosonuma/SwiftPrettyPrint/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/YusukeHosonuma/SwiftPrettyPrint)](https://github.com/YusukeHosonuma/SwiftPrettyPrint/blob/main/LICENSE)
 [![Twitter](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Ftwitter.com%2Ftobi462)](https://twitter.com/tobi462)
 
-![Logo](https://raw.githubusercontent.com/YusukeHosonuma/SwiftPrettyPrint/master/Image/logo.png)
+![Logo](Image/logo.png)
 
 SwiftPrettyPrint gives **Human-readable outputs** than `print()`, `debugPrint()` and `dump()` in Swift standard library.
 
-![Screenshot](https://raw.githubusercontent.com/YusukeHosonuma/SwiftPrettyPrint/master/Image/screenshot.png)
+![Screenshot](Image/screenshot.png)
+
+## Features 🚀
+
+ - Style
+   - [x] Single-line
+   - [x] Multi-line
+ - Integration
+   - [x] LLDB
+   - [x] Terminal
+   - [x] Combine
+   - [ ] RxSwift
+ - Package Manager
+   - [x] Swift Package Manager
+   - [x] CocoaPods
+   - [x] Carthage
+ - OS Support
+   - [x] Apple platforms
+   - [x] Linux
+   - [ ] Windows
+ - SwiftUI Property-wrapper
+   - [x] `@AppStorage`
+   - [x] `@Binding`
+   - [x] `@Environment `
+   - [x] `@EnvironmentObject`
+   - [x] `@FetchRequest` (Property-wrapper name only)
+   - [x] `@FocusedBinding`
+   - [x] `@FocusedState` (Property-wrapper name only)
+   - [x] `@FocusedValue`
+   - [x] `@GestureState`
+   - [x] `@Namespace`
+   - [x] `@ObservedObject `
+   - [x] `@Published`
+   - [x] `@ScaledMetric`
+   - [x] `@SceneStorage` (Support types are limited only `URL`, `Int`, `Double`, `String` and `Bool`)
+   - [x] `@State`
+   - [x] `@StateObject`
+   - [x] `@UIApplicationDelegateAdaptor` (Property-wrapper name only)
+   - [x] `@NSApplicationDelegateAdaptor` (Property-wrapper name only)
+
+## Table of Contents 📖
+
+ - [Motivation 💪](#Motivation-💪)
+   - [Use Standard library of Swift](#Use-Standard-library-of-Swift)
+   - [Use SwiftPrettyPrint](#Use-SwiftPrettyPrint)
+ - [API](#API)
+ - [Operator-based API](#Operator-based-API)
+ - [Format options](#Format-options)
+   - [Indent size](#Indent-size)
+   - [Prefix and Label](#Prefix-and-Label)
+   - [Outputting in Console.app](#Outputting-in-Console.app)
+ - [Integrations 🔌](#Integrations-🔌)
+   - [LLDB](#LLDB)
+   - [Terminal](#Terminal)
+   - [SwiftUI](#SwiftUI)
+   - [Combine](#Combine)
+ - [Installation](#Installation)
+   - [CocoaPods (Recommended)](#CocoaPods-(Recommended))
+   - [Carthage](#Carthage)
+   - [Swift Package Manager](#Swift-Package-Manager)
+ - [Recommend Settings 📝](#Recommend-Settings-📝)
+ - [Requirements](#Requirements)
+ - [Development](#Development)
+ - [Author](#Author)
 
 ## Motivation 💪
 
@@ -110,6 +173,7 @@ Pretty.prettyPrint(value)
 ```
 
 Of course, we also can use the SwiftPrettyPrint with **LLDB**.
+(By using [LLDB integration](#LLDB), you can use it with shorter keywords such as `_p` and `_pp`)
 
 ```text
 (lldb) e Pretty.prettyPrint(value)
@@ -242,6 +306,25 @@ Pretty.prettyPrint(value, option: Pretty.Option(prefix: nil, indentSize: 2))
 // )
 ```
 
+### colorized
+
+Output strings can be ANSI colored.
+
+The options for coloring are specified as follows:
+
+```swift
+Pretty.sharedOption = Pretty.Option(colored: true)
+```
+
+Under this configuration, the following outputs can be achieved in AppCode:
+
+<img src=Image/colored-option.png>
+
+It works only on console that ANSI color supported (e.g. AppCode, Terminal.app).
+This does **not** includes Xcode debug console.
+
+See also [Terminal](#Terminal) section.
+
 ### Prefix and Label
 
 You can specify a global prefix and a label (e.g. variable name) like following:
@@ -275,12 +358,175 @@ Debug.print(dog)
 // => 2020-04-02 11:51:10.766231+0900 SwiftPrettyPrintExample[41397:2843004] Dog(id: "pochi", price: 10.0, name: "ポチ")
 ```
 
+## Integrations 🔌
+
+### LLDB
+
+Please copy and add follows to your `~/.lldbinit` (please create the file if the file doesn't exist):
+
+```text
+command regex _p  's/(.+)/e -l swift -o -- var option = Pretty.sharedOption; option.prefix = nil; Pretty.print(%1, option: option)/'
+command regex _pp 's/(.+)/e -l swift -o -- var option = Pretty.sharedOption; option.prefix = nil; Pretty.prettyPrint(%1, option: option)/'
+```
+
+or install via [lowmad](https://github.com/bangerang/lowmad):
+
+```text
+$ lowmad install https://github.com/YusukeHosonuma/SwiftPrettyPrint.git
+```
+
+**Note:**
+If you already installed 1.1.0 or older version of SwiftPrettyPrint via [lowmad](https://github.com/bangerang/lowmad), please remove scripts manually before update. (e.g. `rm /usr/local/lib/lowmad/commands/YusukeHosonuma-SwiftPrettyPrint/swift_pretty_print.py`)
+
+This lets you to use the lldb command in debug console as follows:
+
+```bash
+(lldb) e -l swift -- import SwiftPrettyPrint # If needed
+(lldb) _p dog
+Dog(id: "pochi", price: 10.0, name: "ポチ")
+
+(lldb) _pp dog
+Dog(
+    id: "pochi",
+    price: 10.0,
+    name: "ポチ"
+)
+```
+
+### Terminal
+
+SwiftPrettyPrint outputs log files to the following files automatically when running **iOS Simulator** or **macOS**.
+
+ - /tmp/SwiftPrettyPrint/output.log
+ - /tmp/SwiftPrettyPrint/output-colored.log (ANSI colored)
+
+So you can read them from other tools such as `tail` or `grep` and others.
+
+```text
+$ tail -F /tmp/SwiftPrettyPrint/output-colored.log
+```
+
+A `output-colored.log` is ANSI colorlized, so this looks beautiful on terminal.
+
+![Terminal](./Image/terminal.png)
+
+#### Customize
+
+You can customize terminal ANSI colors by `Debug.Option.theme` property like as follows.
+
+```swift
+let theme = ColorTheme(
+    type: { $0.green().bold() },
+    nil: { $0.yellow() },
+    bool: { $0.yellow() },
+    string: { $0.blue() },
+    number: { $0.cyan() },
+    url: { $0.underline() }
+)
+
+Debug.sharedOption = Debug.Option(theme: theme)
+```
+
+ANSI colors can be easily specified using [ColorizeSwift](https://github.com/mtynior/ColorizeSwift).
+
+#### Did you create a beautiful theme?
+
+Please add new theme to [ColorTheme.swift](https://github.com/YusukeHosonuma/SwiftPrettyPrint/tree/main/Sources/Core/Color/ColorTheme.swift) and create PR.
+
+```diff
+public struct ColorTheme {
+    ...    
++   public static let themeName = ColorTheme(
++       type: { ... },
++       nil: { ... },
++       bool: { ... },
++       string: { ... },
++       number: { ... },
++       url: { ... }
++   )
+    
+    public var type: (String) -> String
+    public var `nil`: (String) -> String
+    ...
+```
+
+Thanks!
+
+### SwiftUI
+
+You can use `prettyPrint()` and `prettyPrintDebug()` on any `View`.
+
+```swift
+// Standard API.
+Text("Swift")
+    .prettyPrint()
+    .prettyPrintDebug()
+
+// You can specify label if needed.
+Text("Swift")
+    .prettyPrint(label: "🍎")
+    .prettyPrintDebug(label: "🍊")
+```
+
+This extension is useful to examine the internal structure.
+
+### Combine
+
+You can use `prettyPrint()` operator in Combine framework.
+
+```swift
+[[1, 2], [3, 4]]
+    .publisher
+    .prettyPrint("🍌")
+    .sink { _ in }
+    .store(in: &cancellables)
+// =>
+// 🍌: receive subscription: [[1, 2], [3, 4]]
+// 🍌: request unlimited
+// 🍌: receive value:
+// [
+//     1,
+//     2
+// ]
+// 🍌: receive value:
+// [
+//     3,
+//     4
+// ]
+// 🍌: receive finished
+```
+
+You can specify `when:` and `format:`.
+
+```swift
+[[1, 2], [3, 4]]
+    .publisher
+    .prettyPrint("🍌", when: [.output, .completion], format: .singleline)
+    .sink { _ in }
+    .store(in: &cancellables)
+// =>
+// 🍌: receive value: [1, 2]
+// 🍌: receive value: [3, 4]
+// 🍌: receive finished
+```
+
+You can use alias API `p()` and `pp()` too.
+
+```swift
+[[1, 2], [3, 4]]
+    .publisher
+    .p("🍎")  // Output as single-line
+    .pp("🍊") // Output as multiline
+    .sink { _ in }
+    .store(in: &cancellables)
+```
+
 ## Installation
 
 ### CocoaPods (Recommended)
 
 ```ruby
-pod "SwiftPrettyPrint", "~> 1.0.0", :configuration => "Debug" # enabled on `Debug` build only
+pod "SwiftPrettyPrint", "~> 1.2.0", :configuration => "Debug" # enabled on `Debug` build only
 ```
 
 The example app is [here](./Example).
@@ -296,7 +542,7 @@ github "YusukeHosonuma/SwiftPrettyPrint"
 Add the following line to the dependencies in your `Package.swift` file:
 
 ```swift
-.package(url: "https://github.com/YusukeHosonuma/SwiftPrettyPrint.git", .upToNextMajor(from: "1.0.0"))
+.package(url: "https://github.com/YusukeHosonuma/SwiftPrettyPrint.git", .upToNextMajor(from: "1.2.0"))
 ```
 
 Finally, include "SwiftPrettyPrint" as a dependency for your any target:
@@ -305,7 +551,7 @@ Finally, include "SwiftPrettyPrint" as a dependency for your any target:
 let package = Package(
     // name, platforms, products, etc.
     dependencies: [
-        .package(url: "https://github.com/YusukeHosonuma/SwiftPrettyPrint.git", .upToNextMajor(from: "1.0.0")),
+        .package(url: "https://github.com/YusukeHosonuma/SwiftPrettyPrint.git", .upToNextMajor(from: "1.2.0")),
         // other dependencies
     ],
     targets: [
@@ -342,11 +588,21 @@ Debug.prettyPrint(label: "array", array)
 Note:
 This can't be used to the operator-based API such as `p >>>`. (This is a Swift language's limitation)
 
+## Requirements
+
+- Xcode 11.3+ (Swift 5.1+)
+- Platforms
+  - iOS 10.0+
+  - macOS 10.12+
+  - watchOS 5.0+
+  - tvOS 12.0+
+
 ## Development
 
 Require:
 
-- Xcode 11.3
+- Xcode 11.3.1
+  - Note: But run tests are failed on macOS 11.0.1, please use `make test` or latest version of Xcode to run unit tests.
 - [pre-commit](https://github.com/pre-commit/pre-commit-hooks)
 
 Execute `make setup` to install development tools to system (not include Xcode 11.3).

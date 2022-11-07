@@ -1,15 +1,18 @@
 //
-//  PrettyFormatter.swift
-//  SwiftPrettyPrint
+// MultilineFormatter.swift
+// SwiftPrettyPrint
 //
-//  Created by Yusuke Hosonuma on 2020/02/26.
+// Created by Yusuke Hosonuma on 2020/12/12.
+// Copyright (c) 2020 Yusuke Hosonuma.
 //
 
-class MultilineFormatter: PrettyFormatterProtocol {
+class MultilineFormatter: PrettyFormatter {
     private let indentSize: Int
+    private let theme: ColorTheme
 
-    public init(indentSize: Int) {
+    init(indentSize: Int, theme: ColorTheme = .plain) {
         self.indentSize = indentSize
+        self.theme = theme
     }
 
     func collectionString(elements: [String]) -> String {
@@ -75,7 +78,7 @@ class MultilineFormatter: PrettyFormatterProtocol {
         typeName: String, fields: [(String, String)]
     ) -> String {
         if fields.count == 1, let field = fields.first {
-            return "\(typeName)(" + "\(field.0): \(field.1)" + ")"
+            return theme.type(typeName) + "(" + "\(field.0): \(field.1)" + ")"
         } else {
             let body = fields
                 .map { label, value in "\(label): \(value)" }
@@ -83,7 +86,7 @@ class MultilineFormatter: PrettyFormatterProtocol {
                 .indent(size: indentSize)
 
             return """
-            \(typeName)(
+            \(theme.type(typeName))(
             \(body)
             )
             """

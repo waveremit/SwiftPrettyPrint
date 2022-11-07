@@ -1,11 +1,18 @@
 //
-//  SimpleFormatter.swift
-//  SwiftPrettyPrint
+// SinglelineFormatter.swift
+// SwiftPrettyPrint
 //
-//  Created by Yusuke Hosonuma on 2020/02/26.
+// Created by Yusuke Hosonuma on 2020/12/12.
+// Copyright (c) 2020 Yusuke Hosonuma.
 //
 
-class SinglelineFormatter: PrettyFormatterProtocol {
+class SinglelineFormatter: PrettyFormatter {
+    private let theme: ColorTheme
+
+    init(theme: ColorTheme = .plain) {
+        self.theme = theme
+    }
+
     func collectionString(elements: [String]) -> String {
         "[\(elements.joined(separator: ", "))]"
     }
@@ -29,6 +36,6 @@ class SinglelineFormatter: PrettyFormatterProtocol {
 
     func objectString(typeName: String, fields: [(String, String)]) -> String {
         let contents = fields.map { "\($0): \($1)" }.joined(separator: ", ")
-        return "\(typeName)(" + contents + ")"
+        return theme.type(typeName) + "(" + contents + ")"
     }
 }

@@ -8,11 +8,11 @@
 
 import Curry
 import SwiftParamTest
-@testable import SwiftPrettyPrint
 import XCTest
+@testable import SwiftPrettyPrint
 
 class PrettyDescriberTests: XCTestCase {
-    let describer = PrettyDescriber(formatter: .singleline)
+    let describer = PrettyDescriber.singleline(option: .init())
 
     override func setUp() {}
 
@@ -41,7 +41,7 @@ class PrettyDescriberTests: XCTestCase {
             formatter.dateFormat = "yyyy-MM-dd HH:mm:ss ZZZZZ"
             let date = formatter.date(from: "2020-03-24 10:00:00 +0900")!
 
-            let pretty = PrettyDescriber(formatter: .singleline,
+            let pretty = PrettyDescriber(formatter: SinglelineFormatter(theme: .plain),
                                          timeZone: TimeZone(identifier: "Asia/Tokyo")!)
 
             assert(to: pretty.string) {
@@ -285,7 +285,7 @@ class PrettyDescriberTests: XCTestCase {
     func testString_Dictionary() {
         let dictionary: [Int: String?] = [
             2: "Two",
-            1: "One",
+            1: "One"
         ]
 
         // Dictinary
@@ -301,7 +301,7 @@ class PrettyDescriberTests: XCTestCase {
 
         let dictionaryInStruct: [String: Cat] = [
             "mike": Cat(id: "mike", name: "ポチ"),
-            "tama": Cat(id: "tama", name: "タマ"),
+            "tama": Cat(id: "tama", name: "タマ")
         ]
 
         // Dictionary in Struct
@@ -421,7 +421,7 @@ class PrettyDescriberTests: XCTestCase {
     func testExtractKeyValues() throws {
         let dictionary: [String: Int] = [
             "One": 1,
-            "Two": 2,
+            "Two": 2
         ]
 
         let result = try describer.extractKeyValues(from: dictionary) as? [(String, Int)]

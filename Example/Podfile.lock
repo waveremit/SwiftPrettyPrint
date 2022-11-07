@@ -1,16 +1,23 @@
 PODS:
-  - SwiftPrettyPrint (0.0.6)
+  - ColorizeSwift (1.2.0)
+  - SwiftPrettyPrint (1.1.0):
+    - ColorizeSwift
 
 DEPENDENCIES:
   - SwiftPrettyPrint (from `../`)
+
+SPEC REPOS:
+  trunk:
+    - ColorizeSwift
 
 EXTERNAL SOURCES:
   SwiftPrettyPrint:
     :path: "../"
 
 SPEC CHECKSUMS:
-  SwiftPrettyPrint: e6282140cfa70aced5a093b9c9a2120b8bf1a057
+  ColorizeSwift: 4eef354dce7335d7747a0ccacf78afe2b589a1be
+  SwiftPrettyPrint: c15e7661db8446aa5271be190e0f5cbaf2aae179
 
 PODFILE CHECKSUM: e57c1331f81ff220ccc169627a83df5238a8e57f
 
-COCOAPODS: 1.8.4
+COCOAPODS: 1.10.0

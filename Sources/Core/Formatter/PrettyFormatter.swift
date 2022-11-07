@@ -1,24 +1,14 @@
 //
-//  PrettyFormatter.swift
-//  SwiftPrettyPrint
+// PrettyFormatter.swift
+// SwiftPrettyPrint
 //
-//  Created by Fabian Mücke on 27.10.20.
+// Created by Yusuke Hosonuma on 2020/12/12.
+// Copyright (c) 2020 Yusuke Hosonuma.
 //
 
-import Foundation
-
-public enum PrettyFormatter {
-    case multiline(indent: Int)
-    case singleline
-}
-
-extension PrettyFormatter {
-    var implementation: PrettyFormatterProtocol {
-        switch self {
-        case let .multiline(indent: indent):
-            return MultilineFormatter(indentSize: indent)
-        case .singleline:
-            return SinglelineFormatter()
-        }
-    }
+public protocol PrettyFormatter {
+    func collectionString(elements: [String]) -> String
+    func dictionaryString(keysAndValues: [(String, String)]) -> String
+    func tupleString(elements: [(String?, String)]) -> String
+    func objectString(typeName: String, fields: [(String, String)]) -> String
 }

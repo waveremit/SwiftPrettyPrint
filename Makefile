@@ -31,11 +31,11 @@ format: ## format sources by SwiftFormat
 
 .PHONY: lint
 lint: ## cocoapods - lint podspec
-	bundle exec pod lib lint
+	bundle exec pod lib lint --allow-warnings
 
 .PHONY: release
 release: ## cocoapods - release
-	bundle exec pod trunk push SwiftPrettyPrint.podspec
+	bundle exec pod trunk push SwiftPrettyPrint.podspec --allow-warnings
 
 .PHONY: info
 info: ## cocoapods - show trunk information

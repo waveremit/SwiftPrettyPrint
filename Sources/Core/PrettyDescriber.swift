@@ -2,15 +2,28 @@
 // PrettyDescriber.swift
 // SwiftPrettyPrint
 //
-// Created by Yusuke Hosonuma on 2020/02/27.
+// Created by Yusuke Hosonuma on 2020/12/12.
 // Copyright (c) 2020 Yusuke Hosonuma.
 //
 
+#if canImport(UIKit)
+import UIKit
+
+typealias UIComponent = UIResponder
+#else
 import Foundation
 
+typealias UIComponent = AnyClass
+#endif
+
+#if canImport(SwiftUI)
+import SwiftUI
+#endif
+
 public struct PrettyDescriber {
-    public var formatter: PrettyFormatterProtocol
+    public var formatter: PrettyFormatter
     public var timeZone: TimeZone
+    public var theme: ColorTheme
     public var mirrorProvider: MirrorProvider
 
     public struct RedactedValue {
@@ -22,10 +35,12 @@ public struct PrettyDescriber {
     public init(
         formatter: PrettyFormatter,
         timeZone: TimeZone = .current,
+        theme: ColorTheme = .plain,
         mirrorProvider: MirrorProvider = DefaultMirrorProvider.shared
     ) {
-        self.formatter = formatter.implementation
+        self.formatter = formatter
         self.timeZone = timeZone
+        self.theme = theme
         self.mirrorProvider = mirrorProvider
     }
 
@@ -42,12 +57,12 @@ public struct PrettyDescriber {
             case .optional:
                 if let value = mirror.children.first?.value {
                     if debug {
-                        return "Optional(" + _string(value) + ")"
+                        return theme.type("Optional") + "(" + _string(value) + ")"
                     } else {
                         return _string(value)
                     }
                 } else {
-                    return "nil"
+                    return theme.nil("nil")
                 }
 
             case .collection:
@@ -85,7 +100,7 @@ public struct PrettyDescriber {
                 let content = formatter.collectionString(elements: elements)
 
                 if debug {
-                    return "Set(" + content + ")"
+                    return theme.type("Set") + "(" + content + ")"
                 } else {
                     return content
                 }
@@ -111,9 +126,7 @@ public struct PrettyDescriber {
         }
 
         // Object
-        let fields: [(String, String)] = mirror.children.compactMap {
-            ($0.label ?? "-", _string($0.value))
-        }
+        let fields = objectFields(target, debug: debug)
         return formatter.objectString(typeName: typeName, fields: fields)
     }
 
@@ -133,7 +146,8 @@ public struct PrettyDescriber {
 
             guard
                 let key = root.children.first?.value,
-                let value = root.children.dropFirst().first?.value else {
+                let value = root.children.dropFirst().first?.value
+            else {
                 throw PrettyDescriberError.failedExtractKeyValue(dictionary: dictionary)
             }
 
@@ -141,43 +155,265 @@ public struct PrettyDescriber {
         }
     }
 
+    private func objectFields(_ target: Any, debug: Bool) -> [(String, String)] {
+        mirror(reflecting: target).children.compactMap {
+            let value = string($0.value, debug: debug)
+            if isSwiftUIPropertyWrapperType($0.value), let label = $0.label, label.first == "_" {
+                return (String(label.dropFirst()), value) // e.g. `_text` -> `text`
+            } else {
+                return ($0.label ?? "-", value)
+            }
+        }
+    }
+
+    private func isSwiftUIPropertyWrapperType(_ target: Any) -> Bool {
+        let typeName = String(describing: target.self)
+        return [
+            "Published",
+            "StateObject",
+            "ObservedObject",
+            "EnvironmentObject",
+            "Environment",
+            "State",
+            "Binding",
+            "AppStorage",
+            "SceneStorage",
+            "GestureState",
+            "FocusState",
+            "FocusedBinding",
+            "FocusedValue",
+            "ScaledMetric",
+            "UIApplicationDelegateAdaptor",
+            "NSApplicationDelegateAdaptor",
+            "FetchRequest"
+        ].contains { typeName.hasPrefix("\($0)<") } || typeName.hasPrefix("Namespace")
+    }
+
     private func asValueString<T>(_ target: T, debug: Bool) -> String? {
+        guard debug == false else { return nil }
+
+        let children = mirror(reflecting: target).children
+
         // Note:
+        //
         // The conditions for being a `ValueObject`:
         // - has only one field
         // - that field is `Premitive`
-
-        let mirror = self.mirror(reflecting: target)
-
-        guard !debug, mirror.children.count == 1 else { return nil }
-
-        return mirror.children.first.flatMap { asPremitiveString($0.value, debug: debug) }
+        // - that filed is not property-wrapper of SwiftUI
+        //
+        if children.count == 1,
+           let value = children.first?.value,
+           isSwiftUIPropertyWrapperType(value) == false {
+            return asPremitiveString(value, debug: debug)
+        } else {
+            return nil
+        }
     }
 
     private func asPremitiveString<T>(_ target: T, debug: Bool) -> String? {
+        //
+        // SwiftUI Library
+        //
+        #if canImport(SwiftUI)
+        func __string<T: Any>(_ target: T) -> String {
+            string(target, debug: debug) // ☑️ Capture `debug`
+        }
+
+        let typeName = String(describing: target.self)
+
+        let propertyWrappers: [(String, String)] = [
+            ("StateObject", "wrappedValue"),
+            ("ObservedObject", "wrappedValue"),
+            ("EnvironmentObject", "_store"),
+            ("State", "_value"),
+            ("Binding", "_value"),
+            ("GestureState", "_value"), // Lookup `value` of `@State' type.
+            ("FocusedValue", "value") // Lookup `value` of `Optional` type.
+        ]
+
+        for (type, key) in propertyWrappers {
+            if typeName.hasPrefix("\(type)<"), let value = lookup(key, from: target) {
+                if debug {
+                    // e.g. `@State(42)`
+                    return "@\(type)(\(__string(value)))"
+                } else {
+                    return __string(value)
+                }
+            }
+        }
+
+        let replaceTypeNames: [String] = [
+            "ScaledMetric",
+            "UIApplicationDelegateAdaptor",
+            "NSApplicationDelegateAdaptor"
+        ]
+
+        for name in replaceTypeNames where typeName.hasPrefix("\(name)<") {
+            return formatter.objectString(typeName: "@\(name)", fields: objectFields(target, debug: debug))
+        }
+
+        let notSupportedTypes: [String] = [
+            "FocusState", // Currently not getting values, but implemented to prevent infinite loops.
+            "FetchRequest" // No useful value can be obtained at currently, but the output should not be disturbing.
+        ]
+
+        for name in notSupportedTypes where typeName.hasPrefix("\(name)<") {
+            if debug {
+                return "@\(name)(<can not lookup>)"
+            } else {
+                return "<can not lookup>"
+            }
+        }
+
+        //
+        // @Published
+        //
+        // Note:
+        // Direct lookups because some data structures infinity-loop with circular references.
+        //
+        if typeName.hasPrefix("Published") {
+            let value = lookup(keyPath: ["storage", "publisher", "subject", "currentValue"], from: target)
+            if debug {
+                // e.g. `@Published(42)`
+                return "@Published\(__string(value)))"
+            } else {
+                return __string(value)
+            }
+        }
+
+        //
+        // @Namespace
+        //
+        if typeName.hasPrefix("Namespace") {
+            let id = lookup("id", from: target).map(__string) ?? "nil"
+            if debug {
+                return "@Namespace(id: \(id))"
+            } else {
+                return id
+            }
+        }
+
+        //
+        // @FocusedBinding
+        //
+        if typeName.hasPrefix("FocusedBinding<") {
+            // Try lookup `_value` of `@Binding`.
+            let value = lookup("_value", from: target).map(__string) ?? "nil"
+            if debug {
+                return "@FocusedBinding(\(value))"
+            } else {
+                return value
+            }
+        }
+
+        //
+        // @Environment
+        //
+        if typeName.hasPrefix("Environment<"),
+           let content = lookup("content", from: target),
+           let rawValue = mirror(reflecting: content).children.first?.value {
+            if debug {
+                return "@Environment(\(__string(rawValue)))"
+            } else {
+                return __string(rawValue)
+            }
+        }
+
+        //
+        // @AppStorage
+        //
+        if typeName.hasPrefix("AppStorage<"), let key = lookup("key", from: target) as? String {
+            let value = UserDefaults.standard.value(forKey: key) ?? "nil"
+
+            if debug {
+                // e.g. `@AppStorage(key: "Number", userDefaultsValue: 42)`
+                return "@AppStorage(key: \"\(key)\", userDefaultsValue: \(__string(value)))"
+            } else {
+                return __string(value)
+            }
+        }
+
+        //
+        // @SceneStorage
+        //
+        if #available(iOS 14, macOS 11.0,*),
+           typeName.hasPrefix("SceneStorage<"),
+           let key = lookup("_key", from: target) as? String {
+            let value: String
+
+            switch target {
+            case let storage as SceneStorage<URL>:
+                value = __string(storage.wrappedValue)
+
+            case let storage as SceneStorage<Int>:
+                value = __string(storage.wrappedValue)
+
+            case let storage as SceneStorage<Double>:
+                value = __string(storage.wrappedValue)
+
+            case let storage as SceneStorage<String>:
+                value = __string(storage.wrappedValue)
+
+            case let storage as SceneStorage<Bool>:
+                value = __string(storage.wrappedValue)
+
+            default:
+                //
+                // Can't lookup value that implemented `RawRepresentable` protocol.
+                //
+                if debug {
+                    return "@SceneStorage(key: \"\(key)\", value: <can not lookup>)"
+                } else {
+                    return "<can not lookup>"
+                }
+            }
+
+            if debug {
+                return "@SceneStorage(key: \"\(key)\", value: \(value))"
+            } else {
+                return value
+            }
+        }
+        #endif
+
+        //
+        // Swift Standard Library
+        //
         switch target {
         case let value as String:
-            return #""\#(value)""#
+            return theme.string(#""\#(value)""#)
 
         case let url as URL:
             if debug {
-                return #"URL("\#(url.absoluteString)")"#
+                return theme.type("URL") + #"("\#(theme.url(url.absoluteString))")"#
             } else {
-                return url.absoluteString
+                return theme.url(url.absoluteString)
             }
 
         case let date as Date:
             if debug {
                 let f = DateFormatter()
+                #if !os(WASI)
                 f.dateFormat = "yyyy-MM-dd HH:mm:ss ZZZZZ"
                 f.timeZone = timeZone
-                return #"Date("\#(f.string(from: date))")"#
+                #endif
+                return theme.type("Date") + #"("\#(f.string(from: date))")"#
             } else {
                 let f = DateFormatter()
+                #if !os(WASI)
                 f.dateFormat = "yyyy-MM-dd HH:mm:ss"
                 f.timeZone = timeZone
+                #endif
                 return f.string(from: date)
             }
+
+        case let bool as Bool:
+            return theme.bool(bool ? "true" : "false")
+
+        case is Int: fallthrough
+        case is Float: fallthrough
+        case is Double:
+            return theme.number("\(target)")
 
         default:
             if debug {
@@ -186,7 +422,12 @@ public struct PrettyDescriber {
                     return value.debugDescription
 
                 case let value as CustomStringConvertible:
-                    return value.description
+                    if #available(iOS 10.0, tvOS 10.0, *),
+                       let _ = value as? UIComponent {
+                        return nil
+                    } else {
+                        return value.description
+                    }
 
                 default:
                     return nil
@@ -194,7 +435,12 @@ public struct PrettyDescriber {
             } else {
                 switch target {
                 case let value as CustomStringConvertible:
-                    return value.description
+                    if #available(iOS 10.0, tvOS 10.0, *),
+                       let _ = value as? UIComponent {
+                        return nil
+                    } else {
+                        return value.description
+                    }
 
                 case let value as CustomDebugStringConvertible:
                     return value.debugDescription
@@ -252,6 +498,45 @@ public struct PrettyDescriber {
 
     private func mirror<T: Any>(reflecting target: T) -> Mirror {
         mirrorProvider.mirror(reflecting: target)
+    }
+
+    private func lookup(_ key: String, from target: Any) -> Any? {
+        for child in mirror(reflecting: target).children {
+            // 💡 Prevent infinite recursive call.
+            guard let label = child.label else { continue }
+
+            if label == key {
+                return child.value
+            } else {
+                if let found = lookup(key, from: child.value) { // ☑️ Recursive call.
+                    return found
+                }
+            }
+        }
+        return nil
+    }
+
+    private func lookup(keyPath: [String], from: Any) -> Any? {
+        var target: Any = from
+
+        for key in keyPath {
+            if let value = lookup(key: key, from: target) {
+                target = value
+            } else {
+                return nil
+            }
+        }
+
+        return target
+    }
+
+    private func lookup(key: String, from target: Any) -> Any? {
+        for child in mirror(reflecting: target).children {
+            if let label = child.label, label == key {
+                return child.value
+            }
+        }
+        return nil
     }
 
     private func handleError(_ f: () throws -> String) -> String {

@@ -2,7 +2,7 @@
 // AppDelegate.swift
 // SwiftPrettyPrint
 //
-// Created by Yusuke Hosonuma on 2020/02/27.
+// Created by Yusuke Hosonuma on 2020/12/12.
 // Copyright (c) 2020 Yusuke Hosonuma.
 //
 
@@ -19,6 +19,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // --------
         // Example
         // --------
+
+        printSection("Example")
+
         let dog = Dog(id: DogId(rawValue: "pochi"), price: Price(rawValue: 10.0), name: "ポチ")
 
         Debug.print(dog)
@@ -71,6 +74,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // -------------------
         // Swift standard API
         // -------------------
+        print(
+            """
+            --------------------
+             Swift standard API
+            --------------------
+            """
+        )
         print(dog)
         // => Dog(id: SwiftPrettyPrintExample.DogId(rawValue: "pochi"), price: SwiftPrettyPrintExample.Price(rawValue: 10.0), name: Optional("ポチ"))
 
