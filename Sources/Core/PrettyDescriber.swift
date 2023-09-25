@@ -215,7 +215,7 @@ public struct PrettyDescriber {
         // SwiftUI Library
         //
         #if canImport(SwiftUI)
-        func __string<T: Any>(_ target: T) -> String {
+        func __string<Target: Any>(_ target: Target) -> String {
             string(target, debug: debug) // ☑️ Capture `debug`
         }
 
