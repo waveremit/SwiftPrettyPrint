@@ -462,6 +462,8 @@ public struct PrettyDescriber {
             } else {
                 return ".\(target)"
             }
+        } else if let convertible = target as? CustomStringConvertible {
+            return convertible.description
         } else {
             guard let index = "\(target)".firstIndex(of: "(") else {
                 throw PrettyDescriberError.unknownError(target: target)
