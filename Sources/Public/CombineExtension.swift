@@ -56,7 +56,7 @@
             // Note:
             // Use local function for capture arguments.
 
-            func _out<Output: TextOutputStream>(_ value: String, terminator: String = "\n", to output: Output) {
+            func _out<Out: TextOutputStream>(_ value: String, terminator: String = "\n", to output: Out) {
                 let message = prefix.isEmpty
                     ? "\(value)"
                     : "\(prefix): \(value)"

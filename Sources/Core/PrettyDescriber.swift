@@ -215,7 +215,7 @@ public struct PrettyDescriber {
         // SwiftUI Library
         //
         #if canImport(SwiftUI)
-        func __string<T: Any>(_ target: T) -> String {
+        func __string<Target: Any>(_ target: Target) -> String {
             string(target, debug: debug) // ☑️ Capture `debug`
         }
 
@@ -462,6 +462,8 @@ public struct PrettyDescriber {
             } else {
                 return ".\(target)"
             }
+        } else if let convertible = target as? CustomStringConvertible {
+            return convertible.description
         } else {
             guard let index = "\(target)".firstIndex(of: "(") else {
                 throw PrettyDescriberError.unknownError(target: target)
