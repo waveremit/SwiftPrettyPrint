@@ -424,7 +424,7 @@ class PrettyDescriberTests: XCTestCase {
             "Two": 2
         ]
 
-        let result = try describer.extractKeyValues(from: dictionary) as? [(String, Int)]
+        let result = try describer.extractKeyValues(from: dictionary, using: Mirror(reflecting: dictionary)) as? [(String, Int)]
 
         // Note:
         // XCTUnwrap is not supported Swift Package Manager currently.
