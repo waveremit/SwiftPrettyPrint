@@ -26,12 +26,6 @@ public struct PrettyDescriber {
     public var theme: ColorTheme
     public var mirrorProvider: MirrorProvider
 
-    public struct RedactedValue {
-        fileprivate init() {}
-    }
-
-    public static let redactedValue: RedactedValue = .init()
-
     public init(
         formatter: PrettyFormatter,
         timeZone: TimeZone = .current,
@@ -71,7 +65,7 @@ public struct PrettyDescriber {
 
             case .dictionary:
                 return handleError {
-                    let keysAndValues: [(String, String)] = try extractKeyValues(from: target).map { key, value in
+                    let keysAndValues: [(String, String)] = try extractKeyValues(from: target, using: mirror).map { key, value in
                         (_string(key), _string(value))
                     }
                     return formatter.dictionaryString(keysAndValues: keysAndValues)
@@ -92,7 +86,7 @@ public struct PrettyDescriber {
 
             case .enum:
                 return handleError {
-                    try enumString(target, debug: debug)
+                    try enumString(target, debug: debug, using: mirror)
                 }
 
             case .set:
@@ -111,10 +105,6 @@ public struct PrettyDescriber {
             }
         }
 
-        if target is RedactedValue {
-            return "[REDACTED]"
-        }
-
         // Premitive
         if let value = asPremitiveString(target, debug: debug) {
             return value
@@ -130,8 +120,8 @@ public struct PrettyDescriber {
         return formatter.objectString(typeName: typeName, fields: fields)
     }
 
-    func extractKeyValues(from dictionary: Any) throws -> [(Any, Any)] {
-        try mirror(reflecting: dictionary).children.map {
+    func extractKeyValues(from dictionary: Any, using mirror: Mirror) throws -> [(Any, Any)] {
+        try mirror.children.map {
             // Note:
             // Each element $0 structure are like following:
             //
@@ -452,8 +442,7 @@ public struct PrettyDescriber {
         }
     }
 
-    private func enumString(_ target: Any, debug: Bool) throws -> String {
-        let mirror = self.mirror(reflecting: target)
+    private func enumString(_ target: Any, debug: Bool, using mirror: Mirror) throws -> String {
         let typeName = String(describing: mirror.subjectType)
 
         if mirror.children.count == 0 {
